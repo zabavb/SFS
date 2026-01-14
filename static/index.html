@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Secure File Server</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+    integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+    crossorigin="anonymous"
+  />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+    <div class="container">
+      <span class="navbar-brand">Secure File Server</span>
+      <span class="navbar-text small">Register → Login → Upload → Donwload/Share files/Manage profile settings</span>
+    </div>
+  </nav>
+
+  <div class="container mb-4">
+    <div class="row g-3">
+      <div class="col-12 col-lg-6">
+        <div class="card shadow-sm h-100">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <strong>Server response</strong>
+            <span class="small text-muted">Result from your request</span>
+          </div>
+          <div class="card-body">
+            <div id="respMeta" class="small text-muted mb-2">Here you will see the response status code. Below is the response body.</div>
+            <pre id="output" class="console-output mb-0"></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-lg-6">
+        <div class="card shadow-sm h-100">
+          <div class="card-header">
+            <strong>Health</strong>
+          </div>
+          <div class="card-body">
+            <p class="mb-2 small text-muted">Check to ensure that the server works properly. <i>To report an issue, please visit <a href="https://downdetector.com/" target="_blank">downdetector.com</a>.</i></p>
+            <button class="btn btn-success btn-sm" onclick="checkHealth()">Health check</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="row g-3">
+      <div class="col-12 col-lg-6">
+        <div class="card shadow-sm mb-3">
+          <div class="card-header">
+            <strong>Register</strong>
+          </div>
+          <div class="card-body">
+            <div class="mb-3">
+              <label for="regUser" class="form-label">Username</label>
+              <i class="small text-muted">
+                3–32 chars, letters/digits/"."/"_"/"-" only
+              </i>
+              <input id="regUser" class="form-control" placeholder="Create a unique username..." />
+            </div>
+            <div class="mb-3">
+              <label for="regPass" class="form-label">Password</label>
+              <i class="small text-muted">
+                8–128 chars, must include upper, lower, digit & symbol
+            </i>
+              <input id="regPass" class="form-control" type="password" placeholder="Create a strong password..." />
+            </div>
+            <button class="btn btn-primary" onclick="register()">Register</button>
+          </div>
+        </div>
+
+        <div class="card shadow-sm mb-3">
+          <div class="card-header">
+            <strong>Login</strong>
+          </div>
+          <div class="card-body">
+            <div class="mb-3">
+              <label for="logUser" class="form-label">Username</label>
+              <input id="logUser" class="form-control" placeholder="Username..." />
+            </div>
+            <div class="mb-3">
+              <label for="logPass" class="form-label">Password</label>
+              <input id="logPass" class="form-control" type="password" placeholder="Password..." />
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+              <button class="btn btn-primary" onclick="login()">Login</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card shadow-sm mb-3">
+          <div class="card-header">
+            <strong>Profile</strong>
+          </div>
+          <div class="card-body">
+            <div class="d-flex flex-wrap gap-2">
+              <button class="btn btn-outline-secondary btn-sm" onclick="getProfile()">My data</button>
+              <button class="btn btn-outline-primary btn-sm" onclick="refreshToken()">Update permissions</button>
+              <button class="btn btn-outline-danger btn-sm" onclick="logoutRefresh()">Logout</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-lg-6">
+        <div class="card shadow-sm mb-3">
+          <div class="card-header">
+            <strong>Upload personal file</strong>
+          </div>
+          <div class="card-body">
+            <div class="mb-3">
+              <input id="fileInput" type="file" class="form-control" />
+            </div>
+            <button class="btn btn-primary" onclick="uploadFile()">Upload</button>
+          </div>
+        </div>
+
+        <div class="card shadow-sm mb-3">
+          <div class="card-header">
+            <strong>Download personal file</strong>
+          </div>
+          <div class="card-body">
+            <div class="mb-3">
+              <input id="dlId" class="form-control" placeholder="File id..." />
+            </div>
+            <button class="btn btn-outline-primary" onclick="downloadPrivateFile()">Download</button>
+          </div>
+        </div>
+
+        <div class="card shadow-sm mb-3">
+          <div class="card-header">
+            <strong>Shared files</strong>
+          </div>
+          <div class="card-body">
+            <div class="mb-3">
+              <input id="pubId" class="form-control" placeholder="File id..." />
+            </div>
+            <div class="d-flex flex-wrap gap-2 mb-2">
+              <button class="btn btn-outline-success btn-sm" onclick="makeFilePublic()">To public</button>
+              <button class="btn btn-outline-danger btn-sm" onclick="makeFilePrivate()">To private</button>
+            </div>
+            <button class="btn btn-outline-primary btn-sm" onclick="downloadPublicFile()">Download public</button>
+          </div>
+        </div>
+
+        <div class="card shadow-sm mb-3">
+          <div class="card-header">
+            <strong>Share files</strong>
+          </div>
+          <div class="card-body">
+            <div class="mb-3">
+              <input id="shareId" class="form-control" placeholder="File id..." />
+            </div>
+            <div class="mb-3">
+              <input id="shareUser" class="form-control" placeholder="Share with... (username)" />
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+              <button class="btn btn-outline-primary btn-sm" onclick="shareFile()">Share</button>
+              <button class="btn btn-outline-danger btn-sm" onclick="revokeShareFile()">Revoke share</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+<script>
+  const BASE_ROUTE = window.location.origin;
+
+  function setStatus(message, success=true) {
+    console.log((success ? "✅ " : "❌ ") + message);
+  }
+  function output(obj) {
+    document.getElementById("output").textContent =
+      (typeof obj === "string") ? obj : JSON.stringify(obj, null, 2);
+  }
+
+  function setResponseMeta(status, statusText, ok) {
+    const el = document.getElementById("respMeta");
+    if (!el) return;
+    const line = status
+      ? `Status Code ${status}: ${statusText || ""}`.trim()
+      : "Here you will see the response status code. Below is the response body.";
+    el.textContent = line;
+    el.className = "small mb-2 " + (ok ? "text-success" : "text-danger");
+  }
+
+  function getAccessToken() { return localStorage.getItem("access_token") || ""; }
+  function getRefreshToken(){ return localStorage.getItem("refresh_token") || ""; }
+  function setTokens(a,r){
+    if (a !== undefined) localStorage.setItem("access_token", a);
+    if (r !== undefined) localStorage.setItem("refresh_token", r);
+  }
+
+  setTokens(getAccessToken(), getRefreshToken());
+
+  async function api(path, opts={}) {
+    const headers = opts.headers || {};
+    headers["Accept"] = "application/json";
+    if (!opts.noAuth) {
+      const a = getAccessToken();
+      if (a) headers["Authorization"] = "Bearer " + a;
+    }
+    opts.headers = headers;
+    const res = await fetch(BASE_ROUTE + path, opts);
+    const ct = res.headers.get("content-type") || "";
+    let body;
+    if (ct.includes("application/json")) body = await res.json();
+    else body = await res.text();
+
+    setResponseMeta(res.status, res.statusText, res.ok);
+
+    if (!res.ok) throw body;
+    return body;
+  }
+
+  async function checkHealth() {
+    try {
+      const r = await api("/health", { method: "GET", noAuth: true });
+      setStatus("health check passed");
+      output(r);
+    } catch (e) {
+      setStatus("health check failed", false);
+      output(e);
+    }
+  }
+
+  async function register(){
+    try{
+      const username = document.getElementById("regUser").value.trim();
+      const password = document.getElementById("regPass").value;
+      const r = await api("/register", {
+        method:"POST",
+        headers: { "Content-Type":"application/json" },
+        body: JSON.stringify({ username, password }),
+        noAuth: true
+      });
+      setStatus("successfully registered");
+      output(r);
+    } catch(e){ setStatus("failed to register", false); output(e); }
+  }
+
+  async function login(){
+    try{
+      const username = document.getElementById("logUser").value.trim();
+      const password = document.getElementById("logPass").value;
+      const r = await api("/login", {
+        method:"POST",
+        headers: { "Content-Type":"application/json" },
+        body: JSON.stringify({ username, password }),
+        noAuth: true
+      });
+      setTokens(r.access_token, r.refresh_token);
+      setStatus("successfully logged in");
+      output(r);
+    } catch(e){ setStatus("failed to login", false); output(e); }
+  }
+
+  async function getProfile(){
+    try{
+      const r = await api("/profile", { method:"GET" });
+      setStatus("successfully retrieved profile info");
+      output(r);
+    } catch(e){ setStatus("failed to get profile", false); output(e); }
+  }
+
+  async function refreshToken(){
+    try{
+      const rt = getRefreshToken();
+      if (!rt) { setStatus("no refresh token", false); return; }
+      const r = await api("/token/refresh", {
+        method:"POST",
+        headers: { "Content-Type":"application/json" },
+        body: JSON.stringify({ refresh_token: rt }),
+        noAuth: true
+      });
+      setTokens(r.access_token, r.refresh_token);
+      setStatus("successfully refreshed token");
+      output(r);
+    } catch(e){ setStatus("failed to refresh token", false); output(e); }
+  }
+
+  async function logoutRefresh(){
+    try{
+      const rt = getRefreshToken();
+      if (!rt) { setStatus("no refresh token", false); return; }
+      const r = await api("/logout", {
+        method:"POST",
+        headers: { "Content-Type":"application/json" },
+        body: JSON.stringify({ refresh_token: rt }),
+        noAuth: true
+      });
+      localStorage.removeItem("refresh_token");
+      setTokens(getAccessToken(), "");
+      setStatus("successfully logged out");
+      output(r);
+    } catch(e){ setStatus("failed to logout", false); output(e); }
+  }
+
+  async function uploadFile(){
+    try{
+      const f = document.getElementById("fileInput").files[0];
+      if (!f) { setStatus("choose a file first", false); return; }
+      const fd = new FormData();
+      fd.append("file", f);
+      const res = await fetch(BASE_ROUTE + "/file/upload", {
+        method: "POST",
+        headers: { "Authorization": "Bearer " + getAccessToken() },
+        body: fd
+      });
+      const j = await res.json();
+      setResponseMeta(res.status, res.statusText, res.ok);
+      if (!res.ok) throw j;
+      document.getElementById("dlId").value = j.id;
+      document.getElementById("pubId").value = j.id;
+      document.getElementById("shareId").value = j.id;
+      setStatus("successfully uploaded file");
+      output(j);
+    } catch(e){ setStatus("failed to upload file", false); output(e); }
+  }
+
+  async function downloadFile(url, headers, filename){
+    const res = await fetch(url, { headers });
+    if (!res.ok) {
+      const ct = res.headers.get("content-type") || "";
+      const body = ct.includes("application/json") ? await res.json() : await res.text();
+      setResponseMeta(res.status, res.statusText, false);
+      throw body;
+    }
+    setResponseMeta(res.status, res.statusText, true);
+    const blob = await res.blob();
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  async function downloadPrivateFile(){
+    try{
+      const id = document.getElementById("dlId").value.trim();
+      await downloadFile(BASE_ROUTE + "/file/" + id, { "Authorization":"Bearer " + getAccessToken() }, "download_" + id);
+      setStatus("successfuly downloaded private file");
+    } catch(e){ setStatus("failed to download private file", false); output(e); }
+  }
+
+  async function makeFilePublic(){
+    try{
+      const id = document.getElementById("pubId").value.trim();
+      const r = await api("/file/" + id + "/public", { method:"POST" });
+      setStatus("successfully made file public");
+      output(r);
+    } catch(e){ setStatus("failed to make file public", false); output(e); }
+  }
+
+  async function makeFilePrivate(){
+    try{
+      const id = document.getElementById("pubId").value.trim();
+      const r = await api("/file/" + id + "/public", { method:"DELETE" });
+      setStatus("successfully made file private");
+      output(r);
+    } catch(e){ setStatus("failed to make file private", false); output(e); }
+  }
+
+  async function downloadPublicFile(){
+    try{
+      const id = document.getElementById("pubId").value.trim();
+      await downloadFile(BASE_ROUTE + "/file/public/" + id, {}, "public_" + id);
+      setStatus("successfully downloaded public file");
+      output("download started");
+    } catch(e){ setStatus("failed to download public file", false); output(e); }
+  }
+
+  async function shareFile(){
+    try{
+      const id = document.getElementById("shareId").value.trim();
+      const username = document.getElementById("shareUser").value.trim();
+      const r = await api("/file/" + id + "/share", {
+        method:"POST",
+        headers: { "Content-Type":"application/json" },
+        body: JSON.stringify({ username })
+      });
+      setStatus("successfully shared file");
+      output(r);
+    } catch(e){ setStatus("failed to share", false); output(e); }
+  }
+
+  async function revokeShareFile(){
+    try{
+      const id = document.getElementById("shareId").value.trim();
+      const username = document.getElementById("shareUser").value.trim();
+      const r = await api("/file/" + id + "/share/" + encodeURIComponent(username), { method:"DELETE" });
+      setStatus("successfully revoked share");
+      output(r);
+    } catch(e){ setStatus("failed to revoke share", false); output(e); }
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+# Rust build artifacts
+/target/
+**/*.rs.bk
+
+# Database and uploaded files
+/data/
+/data/server.db
+/data/files/*
+!/data/files/.gitkeep
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+.DS_Store
+Thumbs.db
+*.log
+data/*.pdf
+Cargo.lock
+/migrations/*
+
+# Secrets and local config
+.env
