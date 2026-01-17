@@ -101,7 +101,7 @@
           <div class="card-body">
             <div class="d-flex flex-wrap gap-2">
               <button class="btn btn-outline-secondary btn-sm" onclick="getProfile()">My data</button>
-              <button class="btn btn-outline-primary btn-sm" onclick="refreshToken()">Update permissions</button>
+              <button class="btn btn-outline-primary btn-sm" onclick="updatePermissions()">Update permissions</button>
               <button class="btn btn-outline-danger btn-sm" onclick="logoutRefresh()">Logout</button>
             </div>
           </div>
@@ -123,7 +123,7 @@
 
         <div class="card shadow-sm mb-3">
           <div class="card-header">
-            <strong>Download personal file</strong>
+            <strong>Download personal or shared file</strong>
           </div>
           <div class="card-body">
             <div class="mb-3">
@@ -265,15 +265,32 @@
 
   async function getProfile(){
     try{
+      const at = getAccessToken();
+      if (!at) {
+        const message = "Login first";
+        setStatus("", false);
+        setResponseMeta(401, "Unauthorized", false);
+        output(JSON.stringify({message}));
+        return;
+      }
+      
       const r = await api("/profile", { method:"GET" });
       setStatus("successfully retrieved profile info");
       output(r);
     } catch(e){ setStatus("failed to get profile", false); output(e); }
   }
 
-  async function refreshToken(){
+  async function updatePermissions(){
     try{
       const rt = getRefreshToken();
+      if (!rt) {
+        const message = "Login first";
+        setStatus("", false);
+        setResponseMeta(401, "Unauthorized", false);
+        output(JSON.stringify({message}));
+        return;
+      }
+
       if (!rt) { setStatus("no refresh token", false); return; }
       const r = await api("/token/refresh", {
         method:"POST",
@@ -290,29 +307,54 @@
   async function logoutRefresh(){
     try{
       const rt = getRefreshToken();
-      if (!rt) { setStatus("no refresh token", false); return; }
+      if (!rt) {
+        const message = "You are already logged out";
+        setStatus(message, false);
+        setResponseMeta(401, "Unauthorized", false);
+        output(JSON.stringify({message}));
+        return;
+      }
+      // Send logout request even if no refresh token (server handles it gracefully)
       const r = await api("/logout", {
         method:"POST",
         headers: { "Content-Type":"application/json" },
-        body: JSON.stringify({ refresh_token: rt }),
+        body: JSON.stringify({ refresh_token: rt || "" }),
         noAuth: true
       });
+      // Clear both tokens from localStorage
+      localStorage.removeItem("access_token");
       localStorage.removeItem("refresh_token");
-      setTokens(getAccessToken(), "");
+      setTokens("", "");
       setStatus("successfully logged out");
       output(r);
-    } catch(e){ setStatus("failed to logout", false); output(e); }
+    } catch(e){ 
+      // Even if request fails, clear tokens locally
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("refresh_token");
+      setTokens("", "");
+      setStatus("failed to logout", false); 
+      output(e); 
+    }
   }
 
   async function uploadFile(){
     try{
+      const at = getAccessToken();
+      if (!at) {
+        const message = "Login first";
+        setStatus("", false);
+        setResponseMeta(401, "Unauthorized", false);
+        output(JSON.stringify({message}));
+        return;
+      }
+
       const f = document.getElementById("fileInput").files[0];
       if (!f) { setStatus("choose a file first", false); return; }
       const fd = new FormData();
       fd.append("file", f);
       const res = await fetch(BASE_ROUTE + "/file/upload", {
         method: "POST",
-        headers: { "Authorization": "Bearer " + getAccessToken() },
+        headers: { "Authorization": "Bearer " + at },
         body: fd
       });
       const j = await res.json();
@@ -345,26 +387,53 @@
 
   async function downloadPrivateFile(){
     try{
+      const at = getAccessToken();
+      if (!at) {
+        const message = "Login first";
+        setStatus("", false);
+        setResponseMeta(401, "Unauthorized", false);
+        output(JSON.stringify({message}));
+        return;
+      }
+
       const id = document.getElementById("dlId").value.trim();
-      await downloadFile(BASE_ROUTE + "/file/" + id, { "Authorization":"Bearer " + getAccessToken() }, "download_" + id);
+      await downloadFile(BASE_ROUTE + "/file/" + id, { "Authorization":"Bearer " + at }, "download_of_private_file_" + id);
       setStatus("successfuly downloaded private file");
     } catch(e){ setStatus("failed to download private file", false); output(e); }
   }
 
   async function makeFilePublic(){
+    const at = getAccessToken();
+    if (!at) {
+      const message = "Login first";
+      setStatus("", false);
+      setResponseMeta(401, "Unauthorized", false);
+      output(JSON.stringify({message}));
+      return;
+    }
+    
     try{
       const id = document.getElementById("pubId").value.trim();
       const r = await api("/file/" + id + "/public", { method:"POST" });
       setStatus("successfully made file public");
       output(r);
-    } catch(e){ setStatus("failed to make file public", false); output(e); }
+    } catch(e){ setStatus("failed to make file public with id " + id, false); output(e); }
   }
 
   async function makeFilePrivate(){
     try{
+      const at = getAccessToken();
+      if (!at) {
+        const message = "Login first";
+        setStatus("", false);
+        setResponseMeta(401, "Unauthorized", false);
+        output(JSON.stringify({message}));
+        return;
+      }
+      
       const id = document.getElementById("pubId").value.trim();
       const r = await api("/file/" + id + "/public", { method:"DELETE" });
-      setStatus("successfully made file private");
+      setStatus("successfully made file private with id " + id);
       output(r);
     } catch(e){ setStatus("failed to make file private", false); output(e); }
   }
@@ -372,7 +441,7 @@
   async function downloadPublicFile(){
     try{
       const id = document.getElementById("pubId").value.trim();
-      await downloadFile(BASE_ROUTE + "/file/public/" + id, {}, "public_" + id);
+      await downloadFile(BASE_ROUTE + "/file/public/" + id, {}, "download_of_public_file_" + id);
       setStatus("successfully downloaded public file");
       output("download started");
     } catch(e){ setStatus("failed to download public file", false); output(e); }
@@ -380,6 +449,15 @@
 
   async function shareFile(){
     try{
+      const at = getAccessToken();
+      if (!at) {
+        const message = "Login first";
+        setStatus("", false);
+        setResponseMeta(401, "Unauthorized", false);
+        output(JSON.stringify({message}));
+        return;
+      }
+
       const id = document.getElementById("shareId").value.trim();
       const username = document.getElementById("shareUser").value.trim();
       const r = await api("/file/" + id + "/share", {
@@ -387,19 +465,28 @@
         headers: { "Content-Type":"application/json" },
         body: JSON.stringify({ username })
       });
-      setStatus("successfully shared file");
+      setStatus("successfully shared file for " + username);
       output(r);
-    } catch(e){ setStatus("failed to share", false); output(e); }
+    } catch(e){ setStatus("failed to share file with " + username, false); output(e); }
   }
 
   async function revokeShareFile(){
     try{
+      const at = getAccessToken();
+      if (!at) {
+        const message = "Login first";
+        setStatus("", false);
+        setResponseMeta(401, "Unauthorized", false);
+        output(JSON.stringify({message}));
+        return;
+      }
+
       const id = document.getElementById("shareId").value.trim();
       const username = document.getElementById("shareUser").value.trim();
       const r = await api("/file/" + id + "/share/" + encodeURIComponent(username), { method:"DELETE" });
-      setStatus("successfully revoked share");
+      setStatus("successfully revoked sharing for " + username);
       output(r);
-    } catch(e){ setStatus("failed to revoke share", false); output(e); }
+    } catch(e){ setStatus("failed to revoke share with " + username, false); output(e); }
   }
 </script>
 </body>
