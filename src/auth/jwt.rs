@@ -4,12 +4,12 @@ use serde::Serialize;  // Allows converting struct to JSON
 
 use crate::errors::AppError;
 
-// Claims
+// Claims - using standard JWT claim names
 #[derive(Debug, Serialize)]
 struct Claims {
-    subject: i64,  // Subject: the user's ID
-    expiration_time: usize,  // Expiration: when the token expires (Unix timestamp)
-    issued_at_time: usize,  // Issued at: when the token was created (Unix timestamp)
+    sub: i64,  // Subject: the user's ID
+    exp: usize,  // Expiration: when the token expires (Unix timestamp)
+    iat: usize,  // Issued at: when the token was created (Unix timestamp)
 }
 
 // Create a signed access token for the given user, using the provided
@@ -28,9 +28,9 @@ pub fn create_access_token(
 
     // Create the claims (data inside the token)
     let claims = Claims {
-        subject: user_id,  // User ID
-        issued_at_time: now as usize,  // Issued at: current time
-        expiration_time: (now + access_ttl_secs) as usize,  // Expires at: current time + lifetime
+        sub: user_id,  // User ID
+        iat: now as usize,  // Issued at: current time
+        exp: (now + access_ttl_secs) as usize,  // Expires at: current time + lifetime
     };
 
     // Encode the token: sign it with the secret key

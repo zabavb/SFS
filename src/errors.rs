@@ -45,7 +45,11 @@ impl IntoResponse for AppError {
             AppError::Conflict(m) => (StatusCode::CONFLICT, m.clone()),
             AppError::Unauthorized(m) => (StatusCode::UNAUTHORIZED, m.clone()),
             AppError::Forbidden(msg) => (StatusCode::FORBIDDEN, msg.clone()),
-            AppError::Db(_) => (StatusCode::INTERNAL_SERVER_ERROR, "database error".to_string()),
+            AppError::Db(e) => {
+                // Log the actual database error for debugging
+                eprintln!("Database error: {:?}", e);
+                (StatusCode::INTERNAL_SERVER_ERROR, format!("database error: {}", e))
+            },
             AppError::Internal(m) => (StatusCode::INTERNAL_SERVER_ERROR, m.clone()),
         };
 

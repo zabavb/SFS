@@ -20,12 +20,12 @@ pub struct AuthenticationContext {
     pub user_id: i64,  // The ID of the logged-in user
 }
 
-// Claims are the data stored inside the JWT token
+// Using standard JWT claim names that jsonwebtoken expects
 #[derive(Debug, Serialize, Deserialize)]
 struct Claims {
-    subject: i64,  // Subject: user ID
-    expiration_time: usize,
-    issued_at_time: usize,
+    sub: i64,  // Subject: user ID
+    exp: usize,  // Expiration: when the token expires (Unix timestamp)
+    iat: usize,  // Issued at: when the token was created (Unix timestamp)
 }
 
 // This middleware function runs before protected routes.
@@ -67,7 +67,7 @@ pub async fn authenticate(
     // If we get here, the token is valid!
     // Attach the user ID to the request so handlers can access it
     request.extensions_mut().insert(AuthenticationContext {
-        user_id: decoded.claims.subject,  // Extract user ID from token claims
+        user_id: decoded.claims.sub,  // Extract user ID from token claims
     });
 
     // Continue to the next middleware/handler
